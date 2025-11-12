@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { lawyers } from '../data/lawyers';
+import React, { useState, useEffect } from 'react';
 import { Lawyer } from '../types';
+import { fetchLawyers } from '../services/airtableService';
 import RegisterLawyerModal from './RegisterLawyerModal';
 
 const LawyerRow: React.FC<{ lawyer: Lawyer }> = ({ lawyer }) => {
@@ -28,7 +28,56 @@ const LawyerRow: React.FC<{ lawyer: Lawyer }> = ({ lawyer }) => {
 };
 
 const FeaturedLawyers: React.FC = () => {
+    const [lawyers, setLawyers] = useState<Lawyer[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+    useEffect(() => {
+        const loadLawyers = async () => {
+            try {
+                setIsLoading(true);
+                const fetchedLawyers = await fetchLawyers();
+                setLawyers(fetchedLawyers);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadLawyers();
+    }, []);
+
+    const handleLawyerAdded = (newLawyer: Lawyer) => {
+        // Add the new lawyer to the top of the list for immediate visibility
+        setLawyers(prevLawyers => [newLawyer, ...prevLawyers]);
+    };
+
+    const renderContent = () => {
+        if (isLoading) {
+            return <div className="text-center p-10">Loading legal experts...</div>;
+        }
+        if (error) {
+            return <div className="text-center p-10 text-red-500">{error}</div>;
+        }
+        return (
+             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Direction</th>
+                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Services Offered</th>
+                            <th className="py-3 px-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {lawyers.map(lawyer => <LawyerRow key={lawyer.id} lawyer={lawyer} />)}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
 
     return (
         <div className="p-4 md:p-6">
@@ -44,22 +93,12 @@ const FeaturedLawyers: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
                 This is a list of legal professionals and firms specializing in human rights and constitutional law. You can contact them directly for legal assistance.
             </p>
-            <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-                <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Direction</th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Services Offered</th>
-                            <th className="py-3 px-4"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {lawyers.map(lawyer => <LawyerRow key={lawyer.id} lawyer={lawyer} />)}
-                    </tbody>
-                </table>
-            </div>
-            <RegisterLawyerModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} />
+            {renderContent()}
+            <RegisterLawyerModal 
+                isOpen={isRegisterModalOpen} 
+                onClose={() => setIsRegisterModalOpen(false)}
+                onLawyerAdded={handleLawyerAdded}
+            />
         </div>
     );
 };

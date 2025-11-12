@@ -32,7 +32,7 @@ export interface KnowledgeCategory {
 }
 
 export interface Lawyer {
-  id: number;
+  id: string; // Changed from number to string to accommodate Airtable IDs
   name: string;
   phone: string; // E.g., '254712345678'
   location: string;
