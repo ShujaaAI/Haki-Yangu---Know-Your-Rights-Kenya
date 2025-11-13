@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { addLawyer } from '../services/airtableService';
-import { Lawyer } from '../types';
+import { addLawyer } from '../services/googleSheetService';
 
 interface RegisterLawyerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLawyerAdded: (newLawyer: Lawyer) => void;
 }
 
-const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClose, onLawyerAdded }) => {
+const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('');
   const [services, setServices] = useState('');
+  const [agreed, setAgreed] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +24,7 @@ const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClo
       setPhone('');
       setLocation('');
       setServices('');
+      setAgreed(false);
       setError(null);
       setIsSubmitting(false);
   };
@@ -37,16 +37,19 @@ const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreed) {
+        setError("You must agree to the subscription terms to register.");
+        return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
-      const newLawyer = await addLawyer({ name, phone, location, services });
-      onLawyerAdded(newLawyer);
+      await addLawyer({ name, phone, location, services });
       setSubmitted(true);
       resetForm();
       setTimeout(() => {
         handleClose();
-      }, 3000);
+      }, 5000); // Give user time to read the success message
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
       setIsSubmitting(false);
@@ -61,7 +64,10 @@ const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClo
         {submitted ? (
           <div className="text-center p-8">
             <i className="fas fa-check-circle text-green-500 text-4xl mb-4"></i>
-            <p className="text-lg text-gray-700 dark:text-gray-300">Thank you for registering! Your submission has been added.</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Registration Submitted!</h3>
+            <p className="text-gray-700 dark:text-gray-300 mt-2">
+              Thank you for registering. Your profile is now pending review. You will be contacted via WhatsApp with details on how to complete your subscription to be featured on our list.
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,8 +88,26 @@ const RegisterLawyerModal: React.FC<RegisterLawyerModalProps> = ({ isOpen, onClo
               <label htmlFor="services" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Services Offered (comma-separated)</label>
               <textarea id="services" value={services} onChange={e => setServices(e.target.value)} required rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
             </div>
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="agreement"
+                  name="agreement"
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="agreement" className="font-medium text-gray-700 dark:text-gray-300">
+                  I agree to the subscription terms.
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">By checking this box, you agree to be contacted for subscription payment to be listed as a featured lawyer.</p>
+              </div>
+            </div>
             <div className="flex justify-end">
-              <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 disabled:cursor-not-allowed">
+              <button type="submit" disabled={isSubmitting || !agreed} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-opacity">
                 {isSubmitting ? 'Submitting...' : 'Submit Registration'}
               </button>
             </div>

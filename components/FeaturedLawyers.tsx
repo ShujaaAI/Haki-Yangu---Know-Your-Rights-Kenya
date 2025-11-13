@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lawyer } from '../types';
-import { fetchLawyers } from '../services/airtableService';
+import { fetchLawyers } from '../services/googleSheetService';
 import RegisterLawyerModal from './RegisterLawyerModal';
 
 const LawyerRow: React.FC<{ lawyer: Lawyer }> = ({ lawyer }) => {
@@ -48,17 +48,15 @@ const FeaturedLawyers: React.FC = () => {
         loadLawyers();
     }, []);
 
-    const handleLawyerAdded = (newLawyer: Lawyer) => {
-        // Add the new lawyer to the top of the list for immediate visibility
-        setLawyers(prevLawyers => [newLawyer, ...prevLawyers]);
-    };
-
     const renderContent = () => {
         if (isLoading) {
-            return <div className="text-center p-10">Loading legal experts...</div>;
+            return <div className="text-center p-10 text-gray-600 dark:text-gray-400">Loading subscribed legal experts...</div>;
         }
         if (error) {
-            return <div className="text-center p-10 text-red-500">{error}</div>;
+            return <div className="text-center p-10 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">{error}</div>;
+        }
+        if (lawyers.length === 0) {
+            return <div className="text-center p-10 text-gray-600 dark:text-gray-400">No subscribed lawyers are listed at this time.</div>;
         }
         return (
              <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -82,7 +80,7 @@ const FeaturedLawyers: React.FC = () => {
     return (
         <div className="p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Featured Legal Experts</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Subscribed Legal Experts</h2>
                 <button 
                     onClick={() => setIsRegisterModalOpen(true)}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
@@ -91,13 +89,12 @@ const FeaturedLawyers: React.FC = () => {
                 </button>
             </div>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-                This is a list of legal professionals and firms specializing in human rights and constitutional law. You can contact them directly for legal assistance.
+                This is a directory of subscribed legal professionals and firms specializing in human rights and constitutional law. Register to have your profile reviewed for inclusion.
             </p>
             {renderContent()}
             <RegisterLawyerModal 
                 isOpen={isRegisterModalOpen} 
                 onClose={() => setIsRegisterModalOpen(false)}
-                onLawyerAdded={handleLawyerAdded}
             />
         </div>
     );
